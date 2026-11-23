@@ -33,7 +33,7 @@ export default async function handler(req) {
       headers: { "Content-Type": "application/json" },
     });
   }
-  const model = env[cfg.modelEnv] || cfg.model;
+  const model = (typeof body.model === "string" && body.model.trim() && body.model.length < 200 ? body.model.trim() : null) || env[cfg.modelEnv] || cfg.model;
   const headers = { "Content-Type": "application/json" };
   if (key) headers["Authorization"] = "Bearer " + key;
   const upstream = await fetch(base + "/chat/completions", {

@@ -8,8 +8,9 @@ export const BACKENDS = [
   { id: "nvidia", name: "Nvidia NIM — Nemotron 3.5 Bolt", base: "https://integrate.api.nvidia.com/v1", model: "nvidia/nemotron-3.5-bolt-e4b", key: "NVIDIA_API_KEY", modelEnv: "NVIDIA_MODEL" },
   { id: "tokenharbor", name: "Token Harbor — DeepSeek V4.1 Flash (Free)", base: "https://tokenharbor.ai/v1", model: "deepseek-v4.1-flash:free", key: "TOKENHARBOR_API_KEY", modelEnv: "TOKENHARBOR_MODEL", probe: "key" },
   { id: "openrouter", name: "OpenRouter — ERNIE 5.5 Flash (Free)", base: "https://openrouter.ai/api/v1", model: "baidu/ernie-5.5-flash-preview:free", key: "OPENROUTER_API_KEY", modelEnv: "OPENROUTER_MODEL" },
-  { id: "packet", name: "Packet — DeepSeek V4.1 Flash NVFP4 (Free till 15 Dec)", base: "https://api.packet.ai/v1", model: "nvidia-deepseek-v4.1-flash-nvfp4", key: "PACKET_API_KEY", modelEnv: "PACKET_MODEL" },
+  { id: "packet", name: "Packet — DeepSeek V4.1 Flash NVFP4 (Free till 15 Dec)", base: "https://api.packet.ai/v1", model: "nvidia-deepseek-v4-1-flash-nvfp4", key: "PACKET_API_KEY", modelEnv: "PACKET_MODEL" },
   { id: "kaggle", name: "Kaggle GPU — Qwen3.8-27B (T4)", urlEnv: "KAGGLE_URL", model: "hf.co/Blackfrost-AI/Qwen3.8-27B-ABLITERATED-GGUF:Qwen3.8-27B-ABLITERATED-Q3_K_M.gguf", modelEnv: "KAGGLE_MODEL", noKey: true },
+  { id: "colab", name: "Colab GPU — Qwen3.8-27B (T4)", urlEnv: "COLAB_URL", model: "hf.co/Blackfrost-AI/Qwen3.8-27B-ABLITERATED-GGUF:Qwen3.8-27B-ABLITERATED-Q3_K_M.gguf", modelEnv: "COLAB_MODEL", noKey: true },
 ];
 
 export function backendBase(b, env) {
@@ -25,10 +26,10 @@ export function backendKey(b, env) {
 export function getEnv() {
   const keys = [
     "GROQ_API_KEY", "GEMINI_API_KEY", "NVIDIA_API_KEY", "TOKENHARBOR_API_KEY",
-    "OPENROUTER_API_KEY", "PACKET_API_KEY", "KAGGLE_URL",
+    "OPENROUTER_API_KEY", "PACKET_API_KEY", "KAGGLE_URL", "COLAB_URL",
     "HUB_AUTH_USER", "HUB_AUTH_PASSWORD",
     "GROQ_MODEL", "GEMINI_MODEL", "NVIDIA_MODEL", "TOKENHARBOR_MODEL",
-    "OPENROUTER_MODEL", "PACKET_MODEL", "KAGGLE_MODEL",
+    "OPENROUTER_MODEL", "PACKET_MODEL", "KAGGLE_MODEL", "COLAB_MODEL",
   ];
   const env = {};
   for (const k of keys) env[k] = (typeof process !== "undefined" && process.env && process.env[k]) || "";
