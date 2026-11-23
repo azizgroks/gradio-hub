@@ -1,4 +1,4 @@
-import { BACKENDS, getEnv, authed, needAuth, backendBase, backendKey } from "./_backends.js";
+import { BACKENDS, getEnv, authed, needAuth, backendBase, backendKey, backendApiBase } from "./_backends.js";
 
 export const config = { runtime: "edge" };
 
@@ -36,7 +36,7 @@ export default async function handler(req) {
   const model = (typeof body.model === "string" && body.model.trim() && body.model.length < 200 ? body.model.trim() : null) || env[cfg.modelEnv] || cfg.model;
   const headers = { "Content-Type": "application/json" };
   if (key) headers["Authorization"] = "Bearer " + key;
-  const upstream = await fetch(base + "/chat/completions", {
+  const upstream = await fetch(backendApiBase(cfg, env) + "/chat/completions", {
     method: "POST",
     headers: headers,
     body: JSON.stringify({

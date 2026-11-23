@@ -1,4 +1,4 @@
-import { BACKENDS, getEnv, authed, needAuth, backendBase, backendKey } from "./_backends.js";
+import { BACKENDS, getEnv, authed, needAuth, backendBase, backendKey, backendApiBase } from "./_backends.js";
 
 export const config = { runtime: "edge" };
 
@@ -16,7 +16,7 @@ export default async function handler(req) {
       // Key is set: green, and best-effort fetch the live model list.
       let models = [def];
       try {
-        const r = await fetch(base + "/models", {
+        const r = await fetch(backendApiBase(b, env) + "/models", {
           headers: key ? { "Authorization": "Bearer " + key } : {},
           signal: AbortSignal.timeout(5000),
         });
@@ -31,7 +31,7 @@ export default async function handler(req) {
     }
     try {
       const headers = key ? { "Authorization": "Bearer " + key } : {};
-      const r = await fetch(base + "/models", {
+      const r = await fetch(backendApiBase(b, env) + "/models", {
         headers: headers,
         signal: AbortSignal.timeout(5000),
       });

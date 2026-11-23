@@ -18,6 +18,12 @@ export function backendBase(b, env) {
   return b.base || "";
 }
 
+// API root for calls: provider bases already end in /v1, tunnel roots don't.
+export function backendApiBase(b, env) {
+  const base = backendBase(b, env);
+  return b.urlEnv ? base + "/v1" : base;
+}
+
 export function backendKey(b, env) {
   if (b.noKey) return "";
   return env[b.key] || "";
