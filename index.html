@@ -1,0 +1,139 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>الـ Hub الموحد</title>
+<style>
+body{font-family:system-ui,sans-serif;background:#0f172a;color:#e2e8f0;margin:0;padding:0}
+.wrap{max-width:720px;margin:0 auto;padding:16px}
+h1{font-size:20px;margin:8px 0}
+.bar{display:flex;gap:8px;flex-wrap:wrap;margin:10px 0}
+select,button,input{font-size:15px;padding:8px 10px;border-radius:8px;border:1px solid #334155;background:#1e293b;color:#e2e8f0}
+button{cursor:pointer;background:#2563eb;border-color:#2563eb}
+button:disabled{opacity:.5;cursor:wait}
+#status{font-size:13px;line-height:1.9;background:#1e293b;border:1px solid #334155;border-radius:8px;padding:8px 12px;margin:10px 0}
+#log{border:1px solid #334155;border-radius:8px;padding:12px;min-height:300px;background:#020617;white-space:pre-wrap;line-height:1.8}
+.msg{margin:0 0 12px}
+.user{color:#93c5fd}
+.asst{color:#e2e8f0}
+.note{color:#fbbf24;font-size:13px}
+.row{display:flex;gap:8px;margin-top:10px}
+#inp{flex:1}
+</style>
+</head>
+<body>
+<div class="wrap">
+<h1>الـ Hub الموحد</h1>
+<div class="bar">
+<select id="backend">
+<option value="groq">Groq — Qwen3.8-27B</option>
+<option value="gemini">Gemini — 3.5 Flash-Lite</option>
+<option value="nvidia">Nvidia NIM — Nemotron 3.5 Bolt</option>
+<option value="tokenharbor">Token Harbor — DeepSeek V4.1 Flash (Free)</option>
+</select>
+<button id="refresh">تحديث الحالة</button>
+</div>
+<div id="status">جارٍ فحص الحالة…</div>
+<div id="log"></div>
+<div class="row">
+<input id="inp" placeholder="اكتب رسالتك…" autocomplete="off">
+<button id="send">إرسال</button>
+</div>
+</div>
+<script>
+var history = [];
+var order = ["groq", "gemini", "nvidia", "tokenharbor"];
+function el(id){ return document.getElementById(id); }
+function addMsg(role, text){
+  var d = document.createElement("div");
+  d.className = "msg " + (role === "user" ? "user" : "asst");
+  d.textContent = (role === "user" ? "أنت: " : "المساعد: ") + text;
+  el("log").appendChild(d);
+  return d;
+}
+async function refresh(){
+  el("status").textContent = "جارٍ فحص الحالة…";
+  try {
+    var r = await fetch("/api/status");
+    var s = await r.json();
+    var html = "";
+    order.forEach(function(id){
+      var b = s[id];
+      if (!b) return;
+      html += (b.ok ? "🟢 " : "🔴 ") + b.name + (b.ok ? "" : " — " + (b.reason || "")) + "<br>";
+    });
+    el("status").innerHTML = html || "لا توجد باك-إندز";
+  } catch (e) { el("status").textContent = "تعذر فحص الحالة"; }
+}
+async function tryBackend(id, msgs, bubble){
+  var r = await fetch("/api/chat", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ backend: id, messages: msgs }),
+  });
+  if (!r.ok) { var t = await r.text(); throw new Error("HTTP " + r.status + " " + t.slice(0, 120)); }
+  var reader = r.body.getReader();
+  var dec = new TextDecoder();
+  var buf = ""; var out = "";
+  while (true) {
+    var chunk = await reader.read();
+    if (chunk.done) break;
+    buf += dec.decode(chunk.value, { stream: true });
+    var lines = buf.split("\n");
+    buf = lines.pop();
+    for (var i = 0; i < lines.length; i++) {
+      var line = lines[i].trim();
+      if (line.indexOf("data:") !== 0) continue;
+      var data = line.slice(5).trim();
+      if (data === "[DONE]") continue;
+      try {
+        var j = JSON.parse(data);
+        var delta = (j.choices && j.choices[0] && j.choices[0].delta && j.choices[0].delta.content) || "";
+        if (delta) { out += delta; bubble.textContent = "المساعد: " + out; }
+      } catch (e) {}
+    }
+  }
+  return out;
+}
+async function send(){
+  var inp = el("inp");
+  var text = inp.value.trim();
+  if (!text) return;
+  inp.value = "";
+  el("send").disabled = true;
+  history.push({ role: "user", content: text });
+  addMsg("user", text);
+  var bubble = addMsg("assistant", "⏳ جارٍ التفكير…");
+  var first = el("backend").value;
+  var tries = [first].concat(order.filter(function(x){ return x !== first; }));
+  var ok = false;
+  for (var i = 0; i < tries.length; i++) {
+    try {
+      var out = await tryBackend(tries[i], history, bubble);
+      if (out) {
+        history.push({ role: "assistant", content: out });
+        if (tries[i] !== first) {
+          var n = document.createElement("div");
+          n.className = "msg note";
+          n.textContent = "ملاحظة: " + first + " لم يرد، فتم الرد عبر " + tries[i] + " تلقائيًا.";
+          el("log").appendChild(n);
+        }
+        ok = true;
+      }
+      break;
+    } catch (e) {
+      bubble.textContent = "المساعد: ⏳ " + tries[i] + " لم يرد، أجرّب البديل…";
+    }
+  }
+  if (!ok) bubble.textContent = "المساعد: كل الباك-إندز متوقفة حاليًا. جرّب لاحقًا.";
+  el("send").disabled = false;
+  inp.focus();
+}
+el("send").addEventListener("click", send);
+el("inp").addEventListener("keydown", function(e){ if (e.key === "Enter") send(); });
+el("refresh").addEventListener("click", refresh);
+refresh();
+</script>
+</body>
+</html>
