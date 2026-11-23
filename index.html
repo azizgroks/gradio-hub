@@ -31,6 +31,9 @@ button:disabled{opacity:.5;cursor:wait}
 <option value="gemini">Gemini — 3.5 Flash-Lite</option>
 <option value="nvidia">Nvidia NIM — Nemotron 3.5 Bolt</option>
 <option value="tokenharbor">Token Harbor — DeepSeek V4.1 Flash (Free)</option>
+<option value="openrouter">OpenRouter — ERNIE 5.5 Flash (Free)</option>
+<option value="packet">Packet — DeepSeek V4.1 Flash NVFP4 (Free till 15 Dec)</option>
+<option value="kaggle">Kaggle GPU — Qwen3.8-27B (T4)</option>
 </select>
 <button id="refresh">تحديث الحالة</button>
 </div>
@@ -43,7 +46,7 @@ button:disabled{opacity:.5;cursor:wait}
 </div>
 <script>
 var history = [];
-var order = ["groq", "gemini", "nvidia", "tokenharbor"];
+var order = ["groq", "gemini", "nvidia", "tokenharbor", "openrouter", "packet", "kaggle"];
 function el(id){ return document.getElementById(id); }
 function addMsg(role, text){
   var d = document.createElement("div");
