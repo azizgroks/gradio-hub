@@ -34,7 +34,7 @@ export default async function handler(req) {
       model: model,
       messages: body.messages || [],
       temperature: 0.7,
-      max_tokens: 1024,
+      max_tokens: 800,
       stream: true,
     }),
   });
