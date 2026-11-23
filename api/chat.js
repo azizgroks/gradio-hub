@@ -1,4 +1,4 @@
-import { BACKENDS, getEnv, authed, needAuth } from "./_backends.js";
+import { BACKENDS, getEnv, authed, needAuth, backendBase, backendKey } from "./_backends.js";
 
 export const config = { runtime: "edge" };
 
@@ -19,17 +19,26 @@ export default async function handler(req) {
       headers: { "Content-Type": "application/json" },
     });
   }
-  const key = env[cfg.key];
-  if (!key) {
+  const base = backendBase(cfg, env);
+  if (cfg.urlEnv && !base) {
+    return new Response(JSON.stringify({ error: "kaggle session not running" }), {
+      status: 400,
+      headers: { "Content-Type": "application/json" },
+    });
+  }
+  const key = backendKey(cfg, env);
+  if (!cfg.noKey && !key) {
     return new Response(JSON.stringify({ error: "backend not configured" }), {
       status: 400,
       headers: { "Content-Type": "application/json" },
     });
   }
   const model = env[cfg.modelEnv] || cfg.model;
-  const upstream = await fetch(cfg.base + "/chat/completions", {
+  const headers = { "Content-Type": "application/json" };
+  if (key) headers["Authorization"] = "Bearer " + key;
+  const upstream = await fetch(base + "/chat/completions", {
     method: "POST",
-    headers: { "Authorization": "Bearer " + key, "Content-Type": "application/json" },
+    headers: headers,
     body: JSON.stringify({
       model: model,
       messages: body.messages || [],

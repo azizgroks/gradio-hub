@@ -1,4 +1,4 @@
-import { BACKENDS, getEnv, authed, needAuth } from "./_backends.js";
+import { BACKENDS, getEnv, authed, needAuth, backendBase, backendKey } from "./_backends.js";
 
 export const config = { runtime: "edge" };
 
@@ -7,12 +7,15 @@ export default async function handler(req) {
   if (!authed(req, env)) return needAuth();
   const out = {};
   for (const b of BACKENDS) {
-    const key = env[b.key];
-    if (!key) { out[b.id] = { name: b.name, ok: false, reason: "no key" }; continue; }
+    const base = backendBase(b, env);
+    if (b.urlEnv && !base) { out[b.id] = { name: b.name, ok: false, reason: "no session" }; continue; }
+    const key = backendKey(b, env);
+    if (!b.noKey && !key) { out[b.id] = { name: b.name, ok: false, reason: "no key" }; continue; }
     if (b.probe === "key") { out[b.id] = { name: b.name, ok: true, reason: "key set" }; continue; }
     try {
-      const r = await fetch(b.base + "/models", {
-        headers: { "Authorization": "Bearer " + key },
+      const headers = key ? { "Authorization": "Bearer " + key } : {};
+      const r = await fetch(base + "/models", {
+        headers: headers,
         signal: AbortSignal.timeout(5000),
       });
       out[b.id] = { name: b.name, ok: r.ok, reason: r.ok ? "" : ("HTTP " + r.status) };
