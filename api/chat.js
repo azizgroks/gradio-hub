@@ -1,0 +1,48 @@
+import { BACKENDS, getEnv, authed, needAuth } from "./_backends.js";
+
+export const config = { runtime: "edge" };
+
+export default async function handler(req) {
+  const env = getEnv();
+  if (!authed(req, env)) return needAuth();
+  let body;
+  try { body = await req.json(); } catch (e) {
+    return new Response(JSON.stringify({ error: "bad json" }), {
+      status: 400,
+      headers: { "Content-Type": "application/json" },
+    });
+  }
+  const cfg = BACKENDS.find(function (b) { return b.id === body.backend; });
+  if (!cfg) {
+    return new Response(JSON.stringify({ error: "unknown backend" }), {
+      status: 400,
+      headers: { "Content-Type": "application/json" },
+    });
+  }
+  const key = env[cfg.key];
+  if (!key) {
+    return new Response(JSON.stringify({ error: "backend not configured" }), {
+      status: 400,
+      headers: { "Content-Type": "application/json" },
+    });
+  }
+  const model = env[cfg.modelEnv] || cfg.model;
+  const upstream = await fetch(cfg.base + "/chat/completions", {
+    method: "POST",
+    headers: { "Authorization": "Bearer " + key, "Content-Type": "application/json" },
+    body: JSON.stringify({
+      model: model,
+      messages: body.messages || [],
+      temperature: 0.7,
+      max_tokens: 1024,
+      stream: true,
+    }),
+  });
+  if (!upstream.ok) {
+    const text = await upstream.text();
+    return new Response(text, { status: upstream.status, headers: { "Content-Type": "application/json" } });
+  }
+  return new Response(upstream.body, {
+    headers: { "Content-Type": "text/event-stream", "Cache-Control": "no-cache", "Connection": "keep-alive" },
+  });
+}
