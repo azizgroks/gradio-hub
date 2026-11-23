@@ -34,7 +34,9 @@ button:disabled{opacity:.5;cursor:wait}
 <option value="openrouter">OpenRouter — ERNIE 5.5 Flash (Free)</option>
 <option value="packet">Packet — DeepSeek V4.1 Flash NVFP4 (Free till 15 Dec)</option>
 <option value="kaggle">Kaggle GPU — Qwen3.8-27B (T4)</option>
+<option value="colab">Colab GPU — Qwen3.8-27B (T4)</option>
 </select>
+<select id="model"></select>
 <button id="refresh">تحديث الحالة</button>
 </div>
 <div id="status">جارٍ فحص الحالة…</div>
@@ -46,7 +48,22 @@ button:disabled{opacity:.5;cursor:wait}
 </div>
 <script>
 var history = [];
-var order = ["groq", "gemini", "nvidia", "tokenharbor", "openrouter", "packet", "kaggle"];
+var order = ["groq", "gemini", "nvidia", "tokenharbor", "openrouter", "packet", "kaggle", "colab"];
+var statusData = {};
+function buildModels(){
+  var id = el("backend").value;
+  var sel = el("model");
+  var prev = sel.value;
+  var list = (statusData[id] && statusData[id].models) || [];
+  sel.innerHTML = "";
+  list.forEach(function(m){
+    var o = document.createElement("option");
+    o.value = m; o.textContent = m;
+    sel.appendChild(o);
+  });
+  if (prev && list.indexOf(prev) >= 0) sel.value = prev;
+  sel.disabled = list.length <= 1;
+}
 function el(id){ return document.getElementById(id); }
 function addMsg(role, text){
   var d = document.createElement("div");
@@ -60,6 +77,8 @@ async function refresh(){
   try {
     var r = await fetch("/api/status");
     var s = await r.json();
+    statusData = s;
+    buildModels();
     var html = "";
     order.forEach(function(id){
       var b = s[id];
@@ -73,7 +92,7 @@ async function tryBackend(id, msgs, bubble){
   var r = await fetch("/api/chat", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ backend: id, messages: msgs }),
+    body: JSON.stringify({ backend: id, model: (id === el("backend").value ? el("model").value : undefined), messages: msgs }),
   });
   if (!r.ok) { var t = await r.text(); throw new Error("HTTP " + r.status + " " + t.slice(0, 120)); }
   var reader = r.body.getReader();
@@ -134,6 +153,7 @@ async function send(){
   inp.focus();
 }
 el("send").addEventListener("click", send);
+el("backend").addEventListener("change", buildModels);
 el("inp").addEventListener("keydown", function(e){ if (e.key === "Enter") send(); });
 el("refresh").addEventListener("click", refresh);
 refresh();
